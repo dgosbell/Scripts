@@ -20,7 +20,9 @@
 // this regular expression splits strings on underscores and changes from lower to upper case
 // so "my_column_name" becomes an array like {"my", "_", "column", "_", "name"}
 // and "MyOtherColumnName" becomes an array like {"My", "Other", "Column", "Name"}
-var rex = new System.Text.RegularExpressions.Regex( "(^[a-z]+|[A-Z]+(?![a-z])|[A-Z][a-z]+|[^A-Z,a-z]+|[_]|[a-z]+)");
+var rex = new System.Text.RegularExpressions.Regex( "(^[a-z]+|[A-Z]+(?![a-z])|[A-Z][a-z]+|[^A-Z,a-z,0-9]+|[_]|[a-z,A-Z,0-9]+)");
+string log = "";
+int cnt = 0;
 
 // if any of the following are the first word of a table name they will be stripped out
 List<string> tablePrefixesToIgnore = new List<string>() {"dim","fact", "vw","tbl","vd","td","tf","vf"};
@@ -49,7 +51,12 @@ foreach (var tbl in Model.Tables)
                         .Select(m => char.ToUpper(m.Value.First()) + m.Value.Substring(1))
                         .ToArray();                
         string result = string.Join(" ", words);
-        tbl.Name = result;
+        if (tbl.Name != result) {
+            log += "Table:  " + tbl.Name + " -> " + result + "\r\n"; 
+            cnt++;
+            tbl.Name = result;
+        }
+        
     }
 
     foreach (var col in tbl.Columns)
@@ -64,7 +71,16 @@ foreach (var tbl in Model.Tables)
                             .Select(m => char.ToUpper(m.Value.First()) + m.Value.Substring(1))
                             .ToArray();                
             string result = string.Join(" ", words);
-            col.Name = result;
+            if (col.Name != result) {
+                log += "Column: " + tbl.Name + "[" + col.Name + "] -> " + result + "\r\n";
+                cnt++;
+                col.Name = result;
+            }
         }
     }
+}
+if (cnt > 0) 
+{
+    log = "Renamed Objects (" + cnt.ToString() + ")\r\n===============\r\n" + log;
+    Output(log);
 }
